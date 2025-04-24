@@ -174,7 +174,6 @@ pylint==3.3.4
 pylint-venv==3.0.4
 pyls-spyder==0.4.0
 PyNaCl==1.5.0
-pyobjc-core==11.0
 pyobjc-framework-Cocoa==11.0
 pyobjc-framework-CoreServices==11.0
 pyobjc-framework-FSEvents==11.0
