@@ -174,6 +174,52 @@
         padding: 15px;
       }
     }
+
+    @media only screen and (max-width: 600px) {
+        .chat-container {
+          height: 100vh;
+          border-radius: 0;
+          display: flex;
+          flex-direction: column;
+        }
+      
+        .chat-messages {
+          flex: 1;
+          height: auto;
+          overflow-y: auto;
+          padding-bottom: 80px; /* leaves room for input */
+        }
+      
+        .chat-input {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          background: white;
+          padding: 10px 15px;
+          border-top: 1px solid #ddd;
+          display: flex;
+          gap: 10px;
+          z-index: 1000;
+        }
+      
+        .chat-input input {
+          flex: 1;
+          padding: 12px;
+          border: 1px solid #ccc;
+          border-radius: 30px;
+          font-size: 16px;
+        }
+      
+        .chat-input button {
+          padding: 12px 20px;
+          background: #007bff;
+          color: white;
+          border: none;
+          border-radius: 30px;
+          font-weight: bold;
+        }
+      }
   </style>
   
 </head>
