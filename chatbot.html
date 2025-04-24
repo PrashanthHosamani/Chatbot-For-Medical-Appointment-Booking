@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MedCare - Appointment Booking</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: #f0f2f5;
+        padding: 20px;
+    }
+
+    .chat-container {
+        width: 100%;
+        max-width: 480px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .chat-header {
+        background: #007bff;
+        color: white;
+        padding: 20px;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 500;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .back-button {
+        color: white;
+        text-decoration: none;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+    }
+
+    .chat-messages {
+        height: 450px;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .message {
+        margin-bottom: 15px;
+        max-width: 80%;
+        clear: both;
+    }
+
+    .bot-message {
+        background: #f0f2f5;
+        padding: 12px 16px;
+        border-radius: 15px;
+        float: left;
+        color: #333;
+    }
+
+    .user-message {
+        background: #007bff;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 15px;
+        float: right;
+    }
+
+    .chat-input {
+        padding: 20px;
+        border-top: 1px solid #eee;
+        display: flex;
+        gap: 10px;
+    }
+
+    .chat-input input {
+        flex: 1;
+        padding: 10px 15px;
+        border: 1px solid #ddd;
+        border-radius: 25px;
+        outline: none;
+        font-size: 14px;
+    }
+
+    .chat-input button {
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .chat-input button:hover {
+        background: #0056b3;
+    }
+
+    .typing-indicator {
+        display: flex;
+        gap: 5px;
+        padding: 12px 16px;
+        background: #f0f2f5;
+        border-radius: 15px;
+        float: left;
+        margin-bottom: 15px;
+    }
+
+    .typing-indicator span {
+        width: 8px;
+        height: 8px;
+        background: #90949c;
+        border-radius: 50%;
+        animation: typing 1s infinite;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-5px); }
+    }
+
+    .error-message {
+        color: #dc3545;
+        font-size: 14px;
+        margin-top: 5px;
+        clear: both;
+    }
+
+    .success-message {
+        color: #28a745;
+        font-size: 14px;
+        margin-top: 5px;
+        clear: both;
+    }
+
+    .appointment-summary {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        margin-top: 15px;
+        clear: both;
+    }
+
+    .appointment-summary h3 {
+        color: #007bff;
+        margin-bottom: 10px;
+    }
+
+    @media (max-width: 480px) {
+        body {
+            padding: 10px;
+        }
+
+        .chat-container {
+            height: 100vh;
+            border-radius: 0;
+        }
+
+        .chat-messages {
+            height: calc(100vh - 140px);
+        }
+    }
+</style>
+
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <a href="/" class="back-button">← Home</a>
+      <span>MedCare Appointment</span>
+      <span></span>
+    </div>
+    <div id="chatMessages" class="chat-messages"></div>
+    <div class="chat-input">
+      <input id="userInput" type="text" placeholder="Describe your symptoms or ask a medical question...">
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <script>
+    let step = 'initial';
+    const details = {};       // { department, doctor, date, time, name, email, phone, symptoms }
+    let departments = [];
+
+    function addMessage(text, isUser=false) {
+      const m = document.createElement('div');
+      m.className = 'message ' + (isUser ? 'user-message' : 'bot-message');
+      m.textContent = text;
+      const chat = document.getElementById('chatMessages');
+      chat.appendChild(m);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function showTyping() {
+      const ind = document.createElement('div');
+      ind.className = 'typing-indicator';
+      ind.innerHTML = '<span></span><span></span><span></span>';
+      const chat = document.getElementById('chatMessages');
+      chat.appendChild(ind);
+      chat.scrollTop = chat.scrollHeight;
+      return ind;
+    }
+
+    async function sendToAI(text) {
+      const res = await fetch('/api/check-symptoms', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({input: text})
+      });
+      const payload = await res.json();
+      return payload.response;
+    }
+
+    async function handleUser(text) {
+      addMessage(text, true);
+
+      // Capture initial symptoms if user mentions them before booking
+      if (step==='initial' && !details.symptoms && /fever|cough|pain|rash|headache/i.test(text)) {
+        details.symptoms = text;
+        addMessage(`✅ Noted your symptoms: "${details.symptoms}". You can now say "book appointment" when ready.`);
+        return;
+      }
+
+      // 1) Detect booking intent
+      if (step==='initial' && /book.*appointment|doctor|visit/i.test(text)) {
+        step = 'askDepartment';
+        departments = await fetch('/api/get-departments').then(r=>r.json());
+        addMessage(`Sure! Which department would you like? Choose one:\n• ${departments.join('\n• ')}`);
+        return;
+      }
+
+      // 2) Ask & validate department
+      if (step==='askDepartment') {
+        const choice = departments.find(d=>d.toLowerCase()===text.toLowerCase());
+        if (!choice) {
+          addMessage(`Please choose a department from:\n• ${departments.join('\n• ')}`);
+          return;
+        }
+        details.department = choice;
+        step = 'askDoctor';
+        const docs = await fetch(`/api/get-doctors/${encodeURIComponent(choice)}`).then(r=>r.json());
+        addMessage(`Available doctors in ${choice}:\n• ${docs.join('\n• ')}\nWhich doctor?`);
+        return;
+      }
+
+      // 3) Ask doctor
+      if (step==='askDoctor') {
+        details.doctor = text;
+        step = 'askDate';
+        addMessage("Great. What date would you like? (YYYY-MM-DD)");
+        return;
+      }
+
+      // 4) Ask date → show slots
+      if (step==='askDate') {
+        details.date = text;
+        step = 'askTime';
+        const slots = await fetch('/api/get-time-slots',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ doctor: details.doctor, date: details.date })
+        }).then(r=>r.json());
+        addMessage(`Available times on ${details.date}:\n• ${slots.join('\n• ')}\nWhich time?`);
+        return;
+      }
+
+      // 5) Ask time
+      if (step==='askTime') {
+        details.time = text;
+        step = 'askName';
+        addMessage("What's your full name?");
+        return;
+      }
+
+      // 6) Ask name
+      if (step==='askName') {
+        details.name = text;
+        step = 'askEmail';
+        addMessage("Thanks. Your email address?");
+        return;
+      }
+
+      // 7) Ask email
+      if (step==='askEmail') {
+        details.email = text;
+        step = 'askPhone';
+        addMessage("And your phone number?");
+        return;
+      }
+
+      // 8) Ask phone
+      if (step==='askPhone') {
+        details.phone = text;
+        // If symptoms already captured earlier, skip asking
+        if (details.symptoms) {
+          step = 'booking';
+        } else {
+          step = 'askSymptoms';
+        }
+      }
+
+      // 9) Ask or skip symptoms then submit
+      if (step==='askSymptoms') {
+        details.symptoms = text;
+        step = 'booking';
+      }
+      if (step==='booking') {
+        const typing = showTyping();
+        const result = await fetch('/api/book-appointment', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(details)
+        }).then(r=>r.json());
+        typing.remove();
+        if (result.success) {
+          addMessage(`🎉 Appointment confirmed! ID: ${result.appointment_id}\nAnything else I can help with?`);
+        } else {
+          addMessage(`❌ Booking failed: ${result.error||result.message}`);
+        }
+        // reset for next convo
+        step = 'initial';
+        return;
+      }
+
+      // 10) Fallback to AI
+      const typing = showTyping();
+      const aiReply = await sendToAI(text);
+      typing.remove();
+      addMessage(aiReply);
+    }
+
+    document.getElementById('sendBtn').onclick = () => {
+      const input = document.getElementById('userInput');
+      const txt = input.value.trim();
+      if (!txt) return;
+      input.value = '';
+      handleUser(txt);
+    };
+    document.getElementById('userInput')
+      .addEventListener('keypress', e => { if (e.key==='Enter') document.getElementById('sendBtn').click(); });
+
+    // Kick‐off
+    addMessage("Hi! I’m your medical assistant. How can I help you today?");
+  </script>
+</body>
+</html>
