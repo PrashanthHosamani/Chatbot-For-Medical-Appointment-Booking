@@ -277,7 +277,19 @@ if (step!=='initial' && isCancel(txt)) {
       if (step==='initial' && wantsBooking(txt)) {
         step='askDepartment';
         departments = await fetch('/api/get-departments').then(r=>r.json());
-        addMessage(`Which department? Choose:\n• ${departments.join('\n• ')}`);
+        addMessage("Which department?");
+addOptionButtons(departments, async (chosen) => {
+  details.department = chosen;
+  step = 'askDoctor';
+  const docs = await fetch(`/api/get-doctors/${encodeURIComponent(chosen)}`).then(r => r.json());
+  addMessage(`Doctors in ${chosen}:`);
+  addOptionButtons(docs, (doc) => {
+    details.doctor = doc;
+    step = 'askDate';
+    addMessage(`✅ Selected: ${doc}`);
+    addMessage("Date? (YYYY-MM-DD)");
+  }, "Choose a doctor:");
+});
         conversation.push({role:'assistant', text:`Which department? ${departments.join(', ')}`});
         return;
       }
@@ -292,7 +304,7 @@ if (step!=='initial' && isCancel(txt)) {
         details.department = match;
         step='askDoctor';
         const docs = await fetch(`/api/get-doctors/${encodeURIComponent(match)}`).then(r=>r.json());
-        addMessage(`Doctors in ${match}:\n• ${docs.join('\n• ')}\nWho?`);
+        addMessage(`Doctors in ${match}:`, false, docs);
         conversation.push({role:'assistant', text:`Doctors in ${match}: ${docs.join(', ')}`});
         return;
       }
@@ -416,6 +428,30 @@ if (step!=='initial' && isCancel(txt)) {
       .addEventListener('keypress', e => {
         if (e.key==='Enter') document.getElementById('sendBtn').click();
       });
+
+      function addOptionButtons(options = [], onClick, label = "Choose:") {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message bot-message';
+        wrapper.innerHTML = `<div style="margin-bottom: 8px;">${label}</div>`;
+        
+        options.forEach(option => {
+          const btn = document.createElement('button');
+          btn.textContent = option;
+          btn.style.margin = '4px';
+          btn.style.padding = '8px 14px';
+          btn.style.borderRadius = '20px';
+          btn.style.border = 'none';
+          btn.style.background = '#3e413f';
+          btn.style.color = 'white';
+          btn.style.cursor = 'pointer';
+          btn.onclick = () => onClick(option);
+          wrapper.appendChild(btn);
+        });
+      
+        const chat = document.getElementById('chatMessages');
+        chat.appendChild(wrapper);
+        wrapper.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
 
     // initial greeting
     addMessage("Hi! I’m your medical assistant. How can I help you today?");
