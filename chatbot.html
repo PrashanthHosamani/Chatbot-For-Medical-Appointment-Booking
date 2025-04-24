@@ -230,10 +230,18 @@
       <span>MedCare Appointment</span>
     </div>
     <div id="chatMessages" class="chat-messages"></div>
-    <div class="chat-input">
-      <input id="userInput" type="text" placeholder="Describe your symptoms or ask a medical question...">
-      <button id="sendBtn">Send</button>
-    </div>
+    <div class="fixed bottom-0 left-0 w-full bg-white p-2 flex items-center space-x-2 border-t">
+        <input
+          type="text"
+          placeholder="Type a message..."
+          class="flex-grow p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <button
+          class="shrink-0 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+        >
+          Send
+        </button>
+      </div>
   </div>
 
   <script>
