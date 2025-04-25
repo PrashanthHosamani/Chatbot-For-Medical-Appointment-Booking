@@ -74,12 +74,22 @@ def redirect_home():
 @app.route('/api/check-symptoms', methods=['POST'])
 def check_symptoms():
     user_input = request.json.get("input", "").strip()
-    # build prompt
+    lower_input = user_input.lower()
+
+    # ─── Special Case: “Who made you?” ───
+    if "who made you" in lower_input or "who created you" in lower_input:
+        return jsonify({
+            "success": True,
+            "response": "Prashanth(12303950) & Pushkaraditya(12304124)"
+        })
+
+    # ─── Build your usual prompt ───
     prompt = (
         "You are a concise, friendly medical assistant. Answer the user’s question or "
         "give brief advice. If you don’t understand, say so.\n\n"
         "User: " + user_input + "\nAssistant:"
     )
+
     try:
         response = model.generate_content(prompt)
         reply = (response.text or "").strip()
@@ -88,6 +98,7 @@ def check_symptoms():
         return jsonify({"success": True, "response": reply})
     except Exception as e:
         return jsonify({"success": False, "response": f"Gemini Error: {e}"}), 500
+
 
 # ─── Booking support endpoints ─────────────────────────────────────────────────
 @app.route('/api/get-departments')
